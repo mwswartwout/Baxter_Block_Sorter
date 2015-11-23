@@ -1,0 +1,18 @@
+PCL Node:
+    Identify top surface of the block
+    Calculate centroid of the surface
+    Determine orientation of block?
+    Determine color of the surface
+
+Motion Planning:
+    Accept cartesian coordinate of centroid of block and block color
+    Move gripper to that location and set to correct orientation
+
+Gripper:
+    Accept command to open and close gripper
+
+HMI:
+    Needs to recognize starting and stopping commands
+    ar_track_alvar is open source ar tag tracking
+    Other stopping and starting ideas: keyboard
+ 

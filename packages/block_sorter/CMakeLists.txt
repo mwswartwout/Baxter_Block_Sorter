@@ -1,19 +1,21 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(block_finder)
+project(block_sorter)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED 
+find_package(catkin REQUIRED
             COMPONENTS
             roscpp
-            geometry_msgs)
+            geometry_msgs
+            block_finder
+            motion_planning
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(cmake_modules REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(PCL 1.7 REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -101,19 +103,10 @@ find_package(PCL 1.7 REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-        INCLUDE_DIRS
-        include
-        ${CATKIN_INCLUDE_DIRS}
-        ${EIGEN_INCLUDE_DIR}
-        ${PCL_INCLUDE_DIRS}
-#  LIBRARIES block_finder
-CATKIN_DEPENDS
-        roscpp
-        geometry_msgs
-   DEPENDS
-        cmake_modules
-Eigen3
-        PCL 1.7
+#  INCLUDE_DIRS include
+#  LIBRARIES block_sorter
+#  CATKIN_DEPENDS roscpp
+#  DEPENDS system_lib
 )
 
 ###########
@@ -123,31 +116,30 @@ Eigen3
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include)
-include_directories(${CATKIN_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${EIGEN_INCLUDE_DIR})
-include_directories(${PCL_INCLUDE_DIRS})
 
 add_definitions(${EIGEN_DEFINITIONS})
-add_definitions(${PCL_DEFINITIONS})
+
 ## Declare a C++ library
-add_library(block_finder src/block_finder.cpp)
-add_library(final_pcl_utils src/final_pcl_utils.cpp)
+# add_library(block_sorter
+#   src/${PROJECT_NAME}/block_sorter.cpp
+# )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(block_finder ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(block_sorter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(block_finder_node src/block_finder_node.cpp)
+add_executable(block_sorter src/block_sorter.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(block_finder_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(block_sorter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(block_finder ${catkin_LIBRARIES})
-target_link_libraries(final_pcl_utils ${catkin_LIBRARIES})
+target_link_libraries(block_sorter block_finder ${catkin_LIBRARIES} ${EIGEN_LIBRARIES} ${PCL_LIBRARIES})
 
 #############
 ## Install ##
@@ -164,7 +156,7 @@ target_link_libraries(final_pcl_utils ${catkin_LIBRARIES})
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS block_finder block_finder_node
+# install(TARGETS block_sorter block_sorter_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -189,7 +181,7 @@ target_link_libraries(final_pcl_utils ${catkin_LIBRARIES})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_block_finder.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_block_sorter.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -4,7 +4,8 @@ project(motion_planning)
 #find_package(catkin_simple REQUIRED)
 find_package(catkin REQUIRED
     COMPONENTS
-    roscpp)
+    roscpp
+    actionlib)
 find_package(cmake_modules REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL 1.7 REQUIRED)
@@ -17,7 +18,11 @@ add_definitions(${EIGEN_DEFINITIONS})
 catkin_package(
     INCLUDE_DIRS
         include
-        ${catkin_INCLUDE_DIRS})
+        ${catkin_INCLUDE_DIRS}
+    LIBRARIES
+        motion_planning_lib
+    CATKIN_DEPENDS
+        actionlib)
 
 
 add_library(motion_planning_lib src/motion_planning_lib.cpp)

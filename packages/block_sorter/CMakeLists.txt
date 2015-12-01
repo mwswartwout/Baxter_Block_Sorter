@@ -139,7 +139,7 @@ add_executable(block_sorter src/block_sorter.cpp)
 # add_dependencies(block_sorter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(block_sorter block_finder ${catkin_LIBRARIES} ${EIGEN_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(block_sorter ${catkin_LIBRARIES} ${EIGEN_LIBRARIES} ${PCL_LIBRARIES})
 
 #############
 ## Install ##

@@ -106,7 +106,8 @@ catkin_package(
         ${CATKIN_INCLUDE_DIRS}
         ${EIGEN_INCLUDE_DIR}
         ${PCL_INCLUDE_DIRS}
-#  LIBRARIES block_finder
+  LIBRARIES
+    final_pcl_utils 
 CATKIN_DEPENDS
         roscpp
         geometry_msgs

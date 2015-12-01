@@ -44,6 +44,10 @@
   <run_depend>roscpp</run_depend>
     <build_depend>geometry_msgs</build_depend>
     <run_depend>geometry_msgs</run_depend>
+<build_depend>block_finder</build_depend>
+<run_depend>block_finder</run_depend>
+<build_depend>motion_planning</build_depend>
+<run_depend>motion_planning</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

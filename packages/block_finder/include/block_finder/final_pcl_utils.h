@@ -82,6 +82,8 @@ public:
     void transform_selected_points_cloud(Eigen::Affine3f A);
     void transform_cloud(Eigen::Affine3f A,pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud_ptr, 
         pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud_ptr);    
+    void transform_cloud(Eigen::Affine3f A,pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr, 
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud_ptr);    
     void reset_got_kinect_cloud() {got_kinect_cloud_= false;};
     void reset_got_selected_points() {got_selected_points_= false;};    
     bool got_kinect_cloud() { return got_kinect_cloud_; };
@@ -110,7 +112,7 @@ public:
     void filter_cloud_z(PointCloud<pcl::PointXYZ>::Ptr inputCloud, double z_nom, double z_eps, double radius, Eigen::Vector3f centroid, vector<int> &indices);
     void analyze_selected_points_color();
     void copy_cloud_xyzrgb_indices(PointCloud<pcl::PointXYZRGB>::Ptr inputCloud, vector<int> &indices, PointCloud<pcl::PointXYZRGB>::Ptr outputCloud);
-    geometry_msgs::PoseStamped eigenToPose(Eigen::Vector3f eigen);
+    geometry_msgs::PoseStamped eigenToPose(Eigen::Vector3f& eigen);
 
 private:
     ros::NodeHandle nh_; 

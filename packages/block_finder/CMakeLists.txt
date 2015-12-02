@@ -7,7 +7,8 @@ project(block_finder)
 find_package(catkin REQUIRED 
             COMPONENTS
             roscpp
-            geometry_msgs)
+            geometry_msgs
+            tf)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

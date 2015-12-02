@@ -10,15 +10,19 @@ FinalPclUtils::FinalPclUtils(ros::NodeHandle* nodehandle) :   nh_(*nodehandle),
                                                             pclKinect_ptr_(new PointCloud<pcl::PointXYZ>),
                                                             pclKinect_clr_ptr_(new PointCloud<pcl::PointXYZRGB>),
                                                             pclTransformed_ptr_(new PointCloud<pcl::PointXYZ>),
+                                                            pclTransformed_clr_ptr_(new PointCloud<pcl::PointXYZRGB>),
                                                             pclSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),
                                                             pclTransformedSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),
                                                             pclGenPurposeCloud_ptr_(new PointCloud<pcl::PointXYZ>),
-                                                            planarCloud(new PointCloud<pcl::PointXYZ>)
+                                                            planarCloud(new PointCloud<pcl::PointXYZ>),
+                                                            blockCloud(new PointCloud<pcl::PointXYZRGB>)
 {
+    ROS_INFO("In constructor of FinalPclUtils");
     initializeSubscribers();
     initializePublishers();
     got_kinect_cloud_ = false;
     got_selected_points_ = false;
+    ROS_INFO("Exiting constructor of FinalPclUtils");
 }
 
 void FinalPclUtils::fit_points_to_plane(Eigen::MatrixXf points_mat, Eigen::Vector3f &plane_normal, double &plane_dist)
@@ -225,6 +229,7 @@ Eigen::Affine3f FinalPclUtils::transformTFToEigen(const tf::Transform &t) {
  */
 void FinalPclUtils::transform_kinect_cloud(Eigen::Affine3f A) {
     transform_cloud(A, pclKinect_ptr_, pclTransformed_ptr_);
+    transform_cloud(A, pclKinect_clr_ptr_, pclTransformed_clr_ptr_);
     /*
     pclTransformed_ptr_->header = pclKinect_ptr_->header;
     pclTransformed_ptr_->is_dense = pclKinect_ptr_->is_dense;
@@ -389,18 +394,21 @@ void FinalPclUtils::find_selected_centroid(geometry_msgs::PoseStamped& Pose)
 
 void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orientation, Eigen::Vector3d& color)
 {
+    ROS_INFO("Finding block...");
     if (got_kinect_cloud_)
     {
-        double tableHeight = 0; //  Need to determine this experimentally
-        double maxHeight = 0;  // Need to set this based on height of blocks we're looking for
-        double blockHeight = 0;
-        double heightErrorMargin = 0;
+        ROS_INFO("Got kinect cloud");
+        double tableHeight = -.15; //  Need to determine this experimentally
+        double maxHeight = -.11;  // Need to set this based on height of blocks we're looking for
+        double blockHeight = -.13;
+        double heightErrorMargin = .015;
 
+        ROS_INFO("Starting first for loop");
         for (int i = 0; i < pclTransformed_clr_ptr_->size(); i++)
         {
             if (pclTransformed_clr_ptr_->points[i].z > blockHeight)  // Is the point higher than where we think the current block top is
             {
-                if (pclTransformed_clr_ptr_->points[i].z < tableHeight + maxHeight)  // If so, is it lower than our expected max height?
+                if (pclTransformed_clr_ptr_->points[i].z < maxHeight)  // If so, is it lower than our expected max height?
                 {
                     blockHeight = pclTransformed_clr_ptr_->points[i].z;  // If yes then this is our new suggested block height     
                 }
@@ -409,7 +417,8 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
        
         double max = blockHeight + heightErrorMargin;
         double min = blockHeight - heightErrorMargin;
-
+        
+        ROS_INFO("Starting second for loop");
         for (int i =0; i < pclTransformed_clr_ptr_->size(); i++)
         {
             if (pclTransformed_clr_ptr_->points[i].z >= min && pclTransformed_clr_ptr_->points[i].z <= max)
@@ -483,6 +492,9 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         // Now get color
         color = find_avg_color();
         ROS_INFO_STREAM("Computed average color is\n" << color);
+    }
+    else {
+        ROS_INFO("No cloud available");
     }
 }
 //This fnc populates and output cloud of type XYZRGB extracted from the full Kinect cloud (in Kinect frame)
@@ -728,6 +740,24 @@ void FinalPclUtils::transform_cloud(Eigen::Affine3f A, pcl::PointCloud<pcl::Poin
     }
 }
 
+void FinalPclUtils::transform_cloud(Eigen::Affine3f A, pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_cloud_ptr,
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_cloud_ptr) {
+    output_cloud_ptr->header = input_cloud_ptr->header;
+    output_cloud_ptr->is_dense = input_cloud_ptr->is_dense;
+    output_cloud_ptr->width = input_cloud_ptr->width;
+    output_cloud_ptr->height = input_cloud_ptr->height;
+    int npts = input_cloud_ptr->points.size();
+    cout << "transforming npts = " << npts << endl;
+
+    output_cloud_ptr->points.resize(npts);
+    ROS_INFO("Resized output_cloud");
+    //somewhat odd notation: getVector3fMap() reading OR WRITING points from/to a pointcloud, with conversions to/from Eigen
+    for (int i = 0; i < npts; ++i) {
+        output_cloud_ptr->points[i].getVector3fMap() = A * input_cloud_ptr->points[i].getVector3fMap();
+        output_cloud_ptr->points[i].getRGBVector3i() = input_cloud_ptr->points[i].getRGBVector3i();
+    }
+}
+
 //member helper function to set up subscribers;
 // note odd syntax: &ExampleRosClass::subscriberCallback is a pointer to a member function of ExampleRosClass
 // "this" keyword is required, to refer to the current instance of ExampleRosClass
@@ -810,13 +840,20 @@ void FinalPclUtils::selectCB(const sensor_msgs::PointCloud2ConstPtr& cloud) {
     got_selected_points_ = true;
 }
 
-geometry_msgs::PoseStamped FinalPclUtils::eigenToPose(Eigen::Vector3f eigen)
+geometry_msgs::PoseStamped FinalPclUtils::eigenToPose(Eigen::Vector3f& eigen)
 {
     geometry_msgs::PoseStamped pose;
 
+    ROS_INFO_STREAM("Recieved Eigen::Vector3f with value " << 
+        eigen(0) << "," <<
+        eigen(1) << "," <<
+        eigen(2));    
     pose.pose.position.x = eigen(0);
     pose.pose.position.y = eigen(1);
     pose.pose.position.z = eigen(2);
-
+    
+    ROS_INFO_STREAM("Returning pose with origin: " << pose.pose.position.x << "," <<
+        pose.pose.position.y << "," <<
+        pose.pose.position.z);
     return pose;
 }

@@ -37,7 +37,7 @@ int main(int argc, char** argv)
         tferr = false;
         try
         {
-                tf_listener.lookupTransform("torso","kinect_pc_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
+                tf_listener.lookupTransform("torso","camera_rgb_optical_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
         }
         catch (tf::TransformException &exception)
         {
@@ -52,16 +52,20 @@ int main(int argc, char** argv)
     A_sensor_wrt_torso = final_pcl_utils.transformTFToEigen(tf_sensor_frame_to_torso_frame);
     ROS_INFO_STREAM("The found transform is\n" << A_sensor_wrt_torso.linear() << "\n" << A_sensor_wrt_torso.translation());
 
-    final_pcl_utils.transform_kinect_cloud(A_sensor_wrt_torso.inverse());
+    final_pcl_utils.transform_kinect_cloud(A_sensor_wrt_torso);
 
     ROS_INFO("Asking for block location");
     final_pcl_utils.find_block(goalPoint, goalOrientation, goalColor);
+    ROS_INFO("Getting color cloud");
     final_pcl_utils.get_gen_purpose_clr_cloud(display_cloud);
     pcl::toROSMsg(display_cloud, pcl2_display_cloud);
     pcl2_display_cloud.header.stamp = ros::Time::now();
     pcl2_display_cloud.header.frame_id = "torso";
+    while (ros::ok())
+    {
     pubCloud.publish(pcl2_display_cloud);
-
+    ros::spinOnce();
+    }
     //MotionPlanning motion_planning(&nh);
     ROS_INFO("Moving to prepose");
     //motion_planning.plan_move_to_pre_pose();

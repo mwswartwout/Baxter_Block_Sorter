@@ -283,9 +283,9 @@ void FinalPclUtils::get_gen_purpose_cloud(pcl::PointCloud<pcl::PointXYZ> & outpu
 } 
 
 void FinalPclUtils::get_gen_purpose_clr_cloud(pcl::PointCloud<pcl::PointXYZRGB> & outputCloud ) {
-    int npts = pclGenPurposeCloud_ptr_->points.size(); //how many points to extract?
-    outputCloud.header = pclGenPurposeCloud_ptr_->header;
-    outputCloud.is_dense = pclGenPurposeCloud_ptr_->is_dense;
+    int npts = pclGenPurposeCloud_clr_ptr_->points.size(); //how many points to extract?
+    outputCloud.header = pclGenPurposeCloud_clr_ptr_->header;
+    outputCloud.is_dense = pclGenPurposeCloud_clr_ptr_->is_dense;
     outputCloud.width = npts;
     outputCloud.height = 1;
 
@@ -421,11 +421,12 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         //copy_cloud(pclTransformed_clr_ptr_, kinectCloud);
         //pcl::removeNaNFromPointCloud(kinectCloud, kinectCloud, index);
         //ROS_INFO_STREAM("Size of cloud after NaN filtering is " << kinectCloud.size()); 
-        double tableHeight = -.24; //  Need to determine this experimentally
-        double maxHeight = 0;  // Need to set this based on height of blocks we're looking for
-        double blockHeight = -.2;
-        double heightErrorMargin = .015;
-
+        double tableHeight = -.15; //  Need to determine this experimentally
+        double maxHeight = -.12;  // Need to set this based on height of blocks we're looking for
+        double blockHeight = -.135;
+        double heightErrorMargin = .005;
+        double maxX = .75;
+        
         Eigen::Vector3i blockColor; 
         for (int i = 0; i < pclTransformed_clr_ptr_->size(); i++)
         {
@@ -436,7 +437,7 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
                 {
                     //ROS_INFO("A point passed the max height test");
                     blockColor = pclTransformed_clr_ptr_->points[i].getRGBVector3i();
-                    if (blockColor(0) - 166 > 1 && blockColor(1) - 155 > 2 && blockColor(2) - 155 > 2)
+                    //if (blockColor(0) - 166 > 1 && blockColor(1) - 155 > 2 && blockColor(2) - 155 > 2)
                     {
                         //ROS_INFO("A point passed the color test");
                         blockHeight = pclTransformed_clr_ptr_->points[i].z;  // If yes then this is our new suggested block height     
@@ -450,15 +451,15 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         double min = blockHeight - heightErrorMargin;
         
         ROS_INFO("Starting second for loop");
-        for (int i =0; i < kinectCloud.size(); i++)
+        for (int i =0; i < pclTransformed_clr_ptr_->size(); i++)
         {
-            if (kinectCloud.points[i].z >= min && kinectCloud.points[i].z <= max)
+            if (pclTransformed_clr_ptr_->points[i].z >= min && pclTransformed_clr_ptr_->points[i].z <= max)
             {
 
-                blockColor = kinectCloud.points[i].getRGBVector3i();
-                if (blockColor(0) - 166 > 1 && blockColor(1) - 155 > 2 && blockColor(2) - 155 > 2)
+                blockColor = pclTransformed_clr_ptr_->points[i].getRGBVector3i();
+                //if (blockColor(0) - 166 > 1 && blockColor(1) - 155 > 2 && blockColor(2) - 155 > 2)
                 {
-                    blockCloud->points.push_back(kinectCloud.points[i]);
+                    blockCloud->points.push_back(pclTransformed_clr_ptr_->points[i]);
                 }
             }
         }

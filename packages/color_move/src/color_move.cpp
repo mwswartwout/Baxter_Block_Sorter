@@ -16,7 +16,7 @@ ColorMove::ColorMove(ros::NodeHandle *nh)
 void ColorMove::set_goal_color1()
 {
     Vectorq7x1 q_drop_pose_1;
-    q_drop_pose_1 << 0, 0, 0, 0, 0, 0, 0;
+    q_drop_pose_1 << -0.6, -0.2, 2.0, 1.6, -1.4, 1.9, 0;
     find_and_send_trajectory(q_drop_pose_1);
     ROS_INFO("Block *** ready to drop.");
 }
@@ -24,7 +24,7 @@ void ColorMove::set_goal_color1()
 void ColorMove::set_goal_color2()
 {
     Vectorq7x1 q_drop_pose_2;
-    q_drop_pose_2 << 0, 0, 0, 0, 0, 0, 0;
+    q_drop_pose_2 << 0.3, -0.1, 1.7, 0.8, -1.5, 1.7, 0;
     find_and_send_trajectory(q_drop_pose_2);
     ROS_INFO("Block *** ready to drop.");
 }
@@ -32,19 +32,28 @@ void ColorMove::set_goal_color2()
 void ColorMove::set_goal_color3()
 {
     Vectorq7x1 q_drop_pose_3;
-    q_drop_pose_3 << 0, 0, 0, 0, 0, 0, 0;
+    q_drop_pose_3 << 0, -0.9, 0, 0.2, 0, 1.9, 0;
+    find_and_send_trajectory(q_drop_pose_3);
+    q_drop_pose_3 << -0.58, -0.9, 0, 0.5, 0, 1.6, 0.5;
     find_and_send_trajectory(q_drop_pose_3);
     ROS_INFO("Block *** ready to drop.");
 }
 
-void ColorMove::set_goal_color4()
+void ColorMove::set_goal_safe_place()
+{
+    Vectorq7x1 q_drop_pose_safe;
+    q_drop_pose_safe << 0, -0.9, 0, 0.2, 0, 1.9, 0;
+    find_and_send_trajectory(q_drop_pose_safe);
+}
+
+/*void ColorMove::set_goal_color4()
 {
     Vectorq7x1 q_drop_pose_4;
     q_drop_pose_4 << 0, 0, 0, 0, 0, 0, 0;
     find_and_send_trajectory(q_drop_pose_4);
     ROS_INFO("Block *** ready to drop.");
 }
-
+*/
 void ColorMove::find_and_send_trajectory(Vectorq7x1 position)
 {
     Vectorq7x1 q_pose;

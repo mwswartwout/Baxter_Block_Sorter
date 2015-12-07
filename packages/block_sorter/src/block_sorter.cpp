@@ -4,6 +4,8 @@
 #include <block_finder/final_pcl_utils.h>
 #include <motion_planning/motion_planning_lib.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <gripper_controller/gripper_controller.h>
+#include <color_move/color_move.h>
 
 int main(int argc, char** argv)
 {
@@ -38,6 +40,7 @@ int main(int argc, char** argv)
         try
         {
                 tf_listener.lookupTransform("torso","camera_rgb_optical_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
+                //tf_listener.lookupTransform("torso","kinect_pc_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
         }
         catch (tf::TransformException &exception)
         {
@@ -61,26 +64,56 @@ int main(int argc, char** argv)
     pcl::toROSMsg(display_cloud, pcl2_display_cloud);
     pcl2_display_cloud.header.stamp = ros::Time::now();
     pcl2_display_cloud.header.frame_id = "torso";
-    while (ros::ok())
-    {
-    pubCloud.publish(pcl2_display_cloud);
-    ros::spinOnce();
-    }
-    //MotionPlanning motion_planning(&nh);
+
+    /*MotionPlanning motion_planning(&nh);
     ROS_INFO("Moving to prepose");
-    //motion_planning.plan_move_to_pre_pose();
-    //motion_planning.rt_arm_execute_planned_path();
+    motion_planning.plan_move_to_pre_pose();
+    motion_planning.rt_arm_execute_planned_path();
 
     ROS_INFO("Converting goal pose to geometry_msgs");
     ROS_INFO_STREAM(goalPoint(0) << "," << goalPoint(1) << "," << goalPoint(2));
     geometry_msgs::PoseStamped goalPose = final_pcl_utils.eigenToPose(goalPoint);
-    //int rtn_val = motion_planning.rt_arm_request_tool_pose_wrt_torso();
-    //geometry_msgs::PoseStamped rt_tool_pose = motion_planning.get_rt_tool_pose_stamped();
-    //rt_tool_pose.pose.position.x = goalPose.pose.position.x;
-    //rt_tool_pose.pose.position.y = goalPose.pose.position.y;
-    //rt_tool_pose.pose.position.z = goalPose.pose.position.z;
+    int rtn_val = motion_planning.rt_arm_request_tool_pose_wrt_torso();
+    geometry_msgs::PoseStamped rt_tool_pose = motion_planning.get_rt_tool_pose_stamped();
+    rt_tool_pose.pose.position.x = goalPose.pose.position.x;
+    rt_tool_pose.pose.position.y = goalPose.pose.position.y;
+    rt_tool_pose.pose.position.z = goalPose.pose.position.z + .2;
 
     ROS_INFO("Going to goal pose");
-    //motion_planning.rt_arm_plan_path_current_to_goal_pose(rt_tool_pose); 
-    //motion_planning.rt_arm_execute_planned_path();
+    motion_planning.rt_arm_plan_path_current_to_goal_pose(rt_tool_pose); 
+    motion_planning.rt_arm_execute_planned_path();
+
+    //GripperController gripper_controller(&nh);
+    //gripper_controller.open();
+*/
+    Eigen::Vector3d red;
+        red << 191, 55, 96; 
+    Eigen::Vector3d blue;
+        blue << 140, 188, 226; 
+    Eigen::Vector3d green;
+        green << 186, 206, 93;
+
+    ColorMove color_move(&nh);
+
+    if ((goalColor - red).norm() < 5)
+    {
+        ROS_INFO("Moving to red block place");
+        color_move.set_goal_color1();
+    }
+    if ((goalColor - blue).norm() < 5)
+    {
+        ROS_INFO("Moving to blue block place");
+        color_move.set_goal_color2();
+    }
+    if ((goalColor - green).norm() < 5)
+    {
+        ROS_INFO("Moving to green block place");
+        color_move.set_goal_color3();
+    }
+
+    while (ros::ok())
+    {
+        pubCloud.publish(pcl2_display_cloud);
+        ros::spinOnce();
+    }
 }

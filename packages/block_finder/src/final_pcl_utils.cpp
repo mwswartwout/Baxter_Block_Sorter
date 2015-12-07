@@ -425,8 +425,10 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         double maxHeight = -.12;  // Need to set this based on height of blocks we're looking for
         double blockHeight = -.135;
         double heightErrorMargin = .005;
-        double maxX = .75;
-        
+        double maxX = .9;
+        double maxY = .3;
+        double minY = -.3;
+
         Eigen::Vector3i blockColor; 
         for (int i = 0; i < pclTransformed_clr_ptr_->size(); i++)
         {
@@ -438,6 +440,7 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
                     //ROS_INFO("A point passed the max height test");
                     blockColor = pclTransformed_clr_ptr_->points[i].getRGBVector3i();
                     //if (blockColor(0) - 166 > 1 && blockColor(1) - 155 > 2 && blockColor(2) - 155 > 2)
+                    if (pclKinect_clr_ptr_->points[i].x < maxX) 
                     {
                         //ROS_INFO("A point passed the color test");
                         blockHeight = pclTransformed_clr_ptr_->points[i].z;  // If yes then this is our new suggested block height     
@@ -453,7 +456,7 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         ROS_INFO("Starting second for loop");
         for (int i =0; i < pclTransformed_clr_ptr_->size(); i++)
         {
-            if (pclTransformed_clr_ptr_->points[i].z >= min && pclTransformed_clr_ptr_->points[i].z <= max)
+            if (pclTransformed_clr_ptr_->points[i].z >= min && pclTransformed_clr_ptr_->points[i].z <= max && pclTransformed_clr_ptr_->points[i].x < maxX && pclTransformed_clr_ptr_->points[i].y>= minY && pclTransformed_clr_ptr_->points[i].y <= maxY)
             {
 
                 blockColor = pclTransformed_clr_ptr_->points[i].getRGBVector3i();
@@ -529,8 +532,10 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         ROS_INFO_STREAM("Computed orientation is\n" << orientation);
 
         // Now get color
-        color = find_avg_color();
-        ROS_INFO_STREAM("Computed average color is\n" << color);
+        color = find_avg_color(pclKinect_clr_ptr_);
+        color = find_avg_color(pclTransformed_clr_ptr_);
+        color = find_avg_color(blockCloud);
+        //ROS_INFO_STREAM("Computed average color is\n" << color);
     }
     else {
         ROS_INFO("No cloud available");
@@ -592,6 +597,32 @@ Eigen::Vector3d FinalPclUtils::find_avg_color() {
  
 }
 
+Eigen::Vector3d FinalPclUtils::find_avg_color(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inputCloud) {
+    Eigen::Vector3d avg_color;
+    Eigen::Vector3d pt_color;
+    Eigen::Vector3d ref_color;
+    indices_.clear();
+    ref_color<<147,147,147;
+    int npts = inputCloud->points.size();
+    int npts_colored = 0;
+    for (int i=0;i<npts;i++) {
+        pt_color(0) = (double) inputCloud->points[i].r;
+        pt_color(1) = (double) inputCloud->points[i].g;
+        pt_color(2) = (double) inputCloud->points[i].b;
+
+    if ((pt_color-ref_color).norm() > 1) {
+        //ROS_INFO_STREAM("Interesting point has color\n" << pt_color);
+        avg_color+= pt_color;
+        npts_colored++;
+        indices_.push_back(i); // save this points as "interesting" color
+    }
+    }
+    ROS_INFO("found %d points with interesting color",npts_colored);
+    avg_color/=npts_colored;
+    ROS_INFO("avg interesting color = %f, %f, %f",avg_color(0),avg_color(1),avg_color(2));
+    return avg_color;
+ 
+}
 Eigen::Vector3d FinalPclUtils::find_avg_color_selected_pts(vector<int> &indices) {
     Eigen::Vector3d avg_color;
     Eigen::Vector3d pt_color;
@@ -822,7 +853,10 @@ void FinalPclUtils::transform_cloud(Eigen::Affine3f A, pcl::PointCloud<pcl::Poin
     //somewhat odd notation: getVector3fMap() reading OR WRITING points from/to a pointcloud, with conversions to/from Eigen
     for (int i = 0; i < npts; ++i) {
         output_cloud_ptr->points[i].getVector3fMap() = A * input_cloud_ptr->points[i].getVector3fMap();
-        output_cloud_ptr->points[i].getRGBVector3i() = input_cloud_ptr->points[i].getRGBVector3i();
+        //output_cloud_ptr->points[i].getRGBVector3i() = input_cloud_ptr->points[i].getRGBVector3i();
+        output_cloud_ptr->points[i].r = input_cloud_ptr->points[i].r;
+        output_cloud_ptr->points[i].g = input_cloud_ptr->points[i].g;
+        output_cloud_ptr->points[i].b = input_cloud_ptr->points[i].b;
     }
 }
 

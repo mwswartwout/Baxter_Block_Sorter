@@ -107,6 +107,7 @@ public:
 
     void copy_indexed_pts_to_output_cloud(vector<int> &indices,PointCloud<pcl::PointXYZRGB> &outputCloud);
     Eigen::Vector3d find_avg_color();
+    Eigen::Vector3d find_avg_color(pcl::PointCloud<pcl::PointXYZRGB>::Ptr inputCloud);
     Eigen::Vector3d find_avg_color_selected_pts(vector<int> &indices);
     void find_indices_color_match(vector<int> &input_indices, Eigen::Vector3d normalized_avg_color, double color_match_thresh, vector<int> &output_indices);
     void filter_cloud_z(double z_nom, double z_eps, double radius, Eigen::Vector3f centroid, vector<int> &indices);

@@ -10,6 +10,8 @@ find_package(catkin REQUIRED
             geometry_msgs
             block_finder
             motion_planning
+            gripper_controller
+            color_move
 )
 
 ## System dependencies are found with CMake's conventions

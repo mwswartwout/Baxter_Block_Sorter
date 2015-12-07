@@ -20,6 +20,7 @@ public:
 	void set_goal_color2();
 	void set_goal_color3();
 	void set_goal_color4();
+    void set_goal_safe_place();
 
 private:
 	void find_and_send_trajectory(Vectorq7x1 position);

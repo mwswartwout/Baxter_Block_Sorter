@@ -14,6 +14,7 @@ FinalPclUtils::FinalPclUtils(ros::NodeHandle* nodehandle) :   nh_(*nodehandle),
                                                             pclSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),
                                                             pclTransformedSelectedPoints_ptr_(new PointCloud<pcl::PointXYZ>),
                                                             pclGenPurposeCloud_ptr_(new PointCloud<pcl::PointXYZ>),
+                                                            pclGenPurposeCloud_clr_ptr_(new PointCloud<pcl::PointXYZRGB>),
                                                             planarCloud(new PointCloud<pcl::PointXYZ>),
                                                             blockCloud(new PointCloud<pcl::PointXYZRGB>)
 {
@@ -281,6 +282,21 @@ void FinalPclUtils::get_gen_purpose_cloud(pcl::PointCloud<pcl::PointXYZ> & outpu
     }    
 } 
 
+void FinalPclUtils::get_gen_purpose_clr_cloud(pcl::PointCloud<pcl::PointXYZRGB> & outputCloud ) {
+    int npts = pclGenPurposeCloud_ptr_->points.size(); //how many points to extract?
+    outputCloud.header = pclGenPurposeCloud_ptr_->header;
+    outputCloud.is_dense = pclGenPurposeCloud_ptr_->is_dense;
+    outputCloud.width = npts;
+    outputCloud.height = 1;
+
+    cout << "copying cloud w/ npts =" << npts << endl;
+    outputCloud.points.resize(npts);
+    for (int i = 0; i < npts; ++i) {
+        outputCloud.points[i].getVector3fMap() = pclGenPurposeCloud_clr_ptr_->points[i].getVector3fMap();   
+        outputCloud.points[i].getRGBVector3i() = pclGenPurposeCloud_clr_ptr_->points[i].getRGBVector3i();   
+    }    
+}
+
 //void FinalPclUtils::get_indices(vector<int> &indices,) {
 //    indices = indicies_;
 //}
@@ -371,6 +387,7 @@ void FinalPclUtils::findCoplanarPoints() {
 /**
  * @brief Finds the centroid of a selected patch of points
  *
+ *  pcl::removeNaNFromPointCloud(pclKinect_clr_ptr_, pclKinect_clr_ptr_, index);
  * @param Pose A pose to have the centroid coordinates stored in
  */
 void FinalPclUtils::find_selected_centroid(geometry_msgs::PoseStamped& Pose)
@@ -398,34 +415,55 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
     if (got_kinect_cloud_)
     {
         ROS_INFO("Got kinect cloud");
-        double tableHeight = -.15; //  Need to determine this experimentally
-        double maxHeight = -.11;  // Need to set this based on height of blocks we're looking for
-        double blockHeight = -.13;
+        save_transformed_kinect_snapshot();
+        save_kinect_snapshot();
+        //std::vector<int> index;
+        //copy_cloud(pclTransformed_clr_ptr_, kinectCloud);
+        //pcl::removeNaNFromPointCloud(kinectCloud, kinectCloud, index);
+        //ROS_INFO_STREAM("Size of cloud after NaN filtering is " << kinectCloud.size()); 
+        double tableHeight = -.24; //  Need to determine this experimentally
+        double maxHeight = 0;  // Need to set this based on height of blocks we're looking for
+        double blockHeight = -.2;
         double heightErrorMargin = .015;
 
-        ROS_INFO("Starting first for loop");
+        Eigen::Vector3i blockColor; 
         for (int i = 0; i < pclTransformed_clr_ptr_->size(); i++)
         {
             if (pclTransformed_clr_ptr_->points[i].z > blockHeight)  // Is the point higher than where we think the current block top is
             {
+                //ROS_INFO_STREAM("Point with height " << pclTransformed_clr_ptr_->points[i].z);
                 if (pclTransformed_clr_ptr_->points[i].z < maxHeight)  // If so, is it lower than our expected max height?
                 {
-                    blockHeight = pclTransformed_clr_ptr_->points[i].z;  // If yes then this is our new suggested block height     
+                    //ROS_INFO("A point passed the max height test");
+                    blockColor = pclTransformed_clr_ptr_->points[i].getRGBVector3i();
+                    if (blockColor(0) - 166 > 1 && blockColor(1) - 155 > 2 && blockColor(2) - 155 > 2)
+                    {
+                        //ROS_INFO("A point passed the color test");
+                        blockHeight = pclTransformed_clr_ptr_->points[i].z;  // If yes then this is our new suggested block height     
+                    }
                 }
             } 
         }
-       
+        
+        ROS_INFO_STREAM("Block height is " << blockHeight); 
         double max = blockHeight + heightErrorMargin;
         double min = blockHeight - heightErrorMargin;
         
         ROS_INFO("Starting second for loop");
-        for (int i =0; i < pclTransformed_clr_ptr_->size(); i++)
+        for (int i =0; i < kinectCloud.size(); i++)
         {
-            if (pclTransformed_clr_ptr_->points[i].z >= min && pclTransformed_clr_ptr_->points[i].z <= max)
+            if (kinectCloud.points[i].z >= min && kinectCloud.points[i].z <= max)
             {
-               blockCloud->points.push_back(pclTransformed_clr_ptr_->points[i]);
+
+                blockColor = kinectCloud.points[i].getRGBVector3i();
+                if (blockColor(0) - 166 > 1 && blockColor(1) - 155 > 2 && blockColor(2) - 155 > 2)
+                {
+                    blockCloud->points.push_back(kinectCloud.points[i]);
+                }
             }
         }
+
+        copy_cloud(blockCloud, pclGenPurposeCloud_clr_ptr_);
 
         centroid = compute_centroid(blockCloud);
         ROS_INFO_STREAM("Computed centroid at\n" << centroid);
@@ -441,13 +479,13 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         double orientationErrorMargin = 0;
 
         // Find leftmost, farthest, and nearest point of the block
-        for (int i = 0; i < pclTransformed_clr_ptr_->size(); i++)
+        /*for (int i = 0; i < kinectCloud.size(); i++)
         {
-            if (pclTransformed_clr_ptr_->points[i].x > far(0))
+            if (kinectCloud.points[i].x > far(0))
             {
-                far(0) = pclTransformed_clr_ptr_->points[i].x;
-                far(1) = pclTransformed_clr_ptr_->points[i].y;
-                far(2) = pclTransformed_clr_ptr_->points[i].z;
+                far(0) = kinectCloud.points[i].x;
+                far(1) = kinectCloud.points[i].y;
+                far(2) = >points[i].z;
             }
             if (pclTransformed_clr_ptr_->points[i].x < near(0))
             {
@@ -467,7 +505,7 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
                 right(1) = pclTransformed_clr_ptr_->points[i].y;
                 right(2) = pclTransformed_clr_ptr_->points[i].z;
             }
-        }
+        }*/
         
         if (abs(far(1) - near(1)) < orientationErrorMargin)  // Block is reasonably straight
         {
@@ -705,6 +743,35 @@ void FinalPclUtils::copy_cloud(PointCloud<pcl::PointXYZ>::Ptr inputCloud, PointC
     }
 }
 
+void FinalPclUtils::copy_cloud(PointCloud<pcl::PointXYZRGB>::Ptr inputCloud, PointCloud<pcl::PointXYZRGB>::Ptr outputCloud) {
+    int npts = inputCloud->points.size(); //how many points to extract?
+    outputCloud->header = inputCloud->header;
+    outputCloud->is_dense = inputCloud->is_dense;
+    outputCloud->width = npts;
+    outputCloud->height = 1;
+
+    cout << "copying cloud w/ npts =" << npts << endl;
+    outputCloud->points.resize(npts);
+    for (int i = 0; i < npts; ++i) {
+        outputCloud->points[i].getVector3fMap() = inputCloud->points[i].getVector3fMap();
+        outputCloud->points[i].getRGBVector3i() = inputCloud->points[i].getRGBVector3i();
+    }
+}
+
+void FinalPclUtils::copy_cloud(PointCloud<pcl::PointXYZRGB>::Ptr inputCloud, PointCloud<pcl::PointXYZRGB>& outputCloud) {
+    int npts = inputCloud->points.size(); //how many points to extract?
+    outputCloud.header = inputCloud->header;
+    outputCloud.is_dense = inputCloud->is_dense;
+    outputCloud.width = npts;
+    outputCloud.height = 1;
+
+    cout << "copying cloud w/ npts =" << npts << endl;
+    outputCloud.points.resize(npts);
+    for (int i = 0; i < npts; ++i) {
+        outputCloud.points[i].getVector3fMap() = inputCloud->points[i].getVector3fMap();
+        outputCloud.points[i].getRGBVector3i() = inputCloud->points[i].getRGBVector3i();
+    }
+}
 //given indices of interest, chosen points from input colored cloud to output colored cloud
 void FinalPclUtils::copy_cloud_xyzrgb_indices(PointCloud<pcl::PointXYZRGB>::Ptr inputCloud, vector<int> &indices, PointCloud<pcl::PointXYZRGB>::Ptr outputCloud) {
     int npts = indices.size(); //how many points to extract?
@@ -856,4 +923,8 @@ geometry_msgs::PoseStamped FinalPclUtils::eigenToPose(Eigen::Vector3f& eigen)
         pose.pose.position.y << "," <<
         pose.pose.position.z);
     return pose;
+}
+
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr FinalPclUtils::getBlockCloud() {
+        return blockCloud;
 }

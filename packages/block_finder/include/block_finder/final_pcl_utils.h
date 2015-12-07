@@ -94,7 +94,10 @@ public:
     void save_transformed_kinect_snapshot() { pcl::io::savePCDFileASCII ("xformed_kinect_snapshot.pcd", *pclTransformed_ptr_);};
     void get_transformed_selected_points(pcl::PointCloud<pcl::PointXYZ> & outputCloud );
     void copy_cloud(PointCloud<pcl::PointXYZ>::Ptr inputCloud, PointCloud<pcl::PointXYZ>::Ptr outputCloud); 
+    void copy_cloud(PointCloud<pcl::PointXYZRGB>::Ptr inputCloud, PointCloud<pcl::PointXYZRGB>::Ptr outputCloud); 
+    void copy_cloud(PointCloud<pcl::PointXYZRGB>::Ptr inputCloud, PointCloud<pcl::PointXYZRGB>& outputCloud); 
     void get_gen_purpose_cloud(pcl::PointCloud<pcl::PointXYZ> & outputCloud );    
+    void get_gen_purpose_clr_cloud(pcl::PointCloud<pcl::PointXYZRGB> & outputCloud );    
     void example_pcl_operation();
     void findCoplanarPoints();
     void find_selected_centroid(geometry_msgs::PoseStamped& pose);
@@ -113,6 +116,7 @@ public:
     void analyze_selected_points_color();
     void copy_cloud_xyzrgb_indices(PointCloud<pcl::PointXYZRGB>::Ptr inputCloud, vector<int> &indices, PointCloud<pcl::PointXYZRGB>::Ptr outputCloud);
     geometry_msgs::PoseStamped eigenToPose(Eigen::Vector3f& eigen);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr getBlockCloud();
 
 private:
     ros::NodeHandle nh_; 
@@ -134,8 +138,10 @@ private:
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclSelectedPtsClr_ptr_;
     pcl::PointCloud<pcl::PointXYZ>::Ptr pclTransformedSelectedPoints_ptr_;
     pcl::PointCloud<pcl::PointXYZ>::Ptr pclGenPurposeCloud_ptr_;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr pclGenPurposeCloud_clr_ptr_;
     pcl::PointCloud<pcl::PointXYZ>::Ptr planarCloud;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr blockCloud;
+    pcl::PointCloud<pcl::PointXYZRGB> kinectCloud;
 
     bool got_kinect_cloud_;
     bool got_selected_points_;

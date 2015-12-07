@@ -16,6 +16,7 @@ find_package(catkin REQUIRED
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(cmake_modules REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(PCL 1.7)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -118,8 +119,10 @@ catkin_package(
 include_directories(include)
 include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${EIGEN_INCLUDE_DIR})
+include_directories(${PCL_INCLUDE_DIRS})
 
 add_definitions(${EIGEN_DEFINITIONS})
+add_definitions(${PLC_DEFINITIONS})
 
 ## Declare a C++ library
 # add_library(block_sorter

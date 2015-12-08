@@ -1,26 +1,59 @@
 #include <ros/ros.h>
 #include <block_sorter/block_sorter.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <block_finder/final_pcl_utils.h>
-#include <motion_planning/motion_planning_lib.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <gripper_controller/gripper_controller.h>
-#include <color_move/color_move.h>
+
+BlockSorter::BlockSorter() :
+    final_pcl_utils(&nh),
+    motion_planning(&nh),
+    color_move(&nh)
+{   
+    red << 191, 55, 96; 
+    blue << 140, 188, 226; 
+    green << 150, 175, 70;
+    pubCloud = nh.advertise<sensor_msgs::PointCloud2>("/pcl_cloud_display", 1);
+}
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "block_sorter");
-    ros::NodeHandle nh;
+    BlockSorter block_sorter;
+    std::string keyboard_input;
 
-    Eigen::Vector3f goalPoint;
-    Eigen::Vector3f goalOrientation;
-    Eigen::Vector3d goalColor;
+    ROS_INFO("Type p to pause, c to continue, q to quit");
+    while(ros::ok())
+    {
+            cin >> keyboard_input;
+            if (keyboard_input == "p")
+            {
+                ROS_INFO("Block sorting is currently paused, press c to continue or q to quit");
+                cin >> keyboard_input;
+            }
+            if (keyboard_input == "c")
+            {
+                ROS_INFO("Continuing block sorting...");
+                block_sorter.doBlockSort();
+            }
+            if (keyboard_input == "q")
+            {
+                ROS_INFO("Exiting...");
+                exit(1);
+            }
+            if (keyboard_input != "p" && keyboard_input != "c" && keyboard_input != "q")
+            {
+                ROS_INFO("Invalid keyboard input, try again");
+            }
+            ROS_INFO("Block sorting complete, press p to pause, c to sort another block, or q to quit");
+    }
+}
 
-    FinalPclUtils final_pcl_utils(&nh);
-    ros::Publisher pubCloud = nh.advertise<sensor_msgs::PointCloud2>("/pcl_cloud_display", 1);
-    pcl::PointCloud<pcl::PointXYZRGB> display_cloud; 
-    sensor_msgs::PointCloud2 pcl2_display_cloud;
+void BlockSorter::doBlockSort()
+{
+    ROS_INFO("Moving to prepose");
+    motion_planning.plan_move_to_pre_pose();
+    motion_planning.rt_arm_execute_planned_path();
 
+    final_pcl_utils.reset_got_kinect_cloud();
     if (!final_pcl_utils.got_kinect_cloud())
     {
         ROS_INFO("did not receive pointcloud");
@@ -29,9 +62,7 @@ int main(int argc, char** argv)
     }
     ROS_INFO("got a pointcloud");
 
-    tf::StampedTransform tf_sensor_frame_to_torso_frame;
-    tf::TransformListener tf_listener;
-
+    
     bool tferr = true;
     ROS_INFO("waiting for tf between kinect_pc_frame and torso...");
     while (tferr)
@@ -39,8 +70,8 @@ int main(int argc, char** argv)
         tferr = false;
         try
         {
-                tf_listener.lookupTransform("torso","camera_rgb_optical_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
-                //tf_listener.lookupTransform("torso","kinect_pc_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
+                //tf_listener.lookupTransform("torso","camera_rgb_optical_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
+                tf_listener.lookupTransform("torso","kinect_pc_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
         }
         catch (tf::TransformException &exception)
         {
@@ -51,7 +82,6 @@ int main(int argc, char** argv)
         }
     }
     ROS_INFO("tf is good");
-    Eigen::Affine3f A_sensor_wrt_torso;
     A_sensor_wrt_torso = final_pcl_utils.transformTFToEigen(tf_sensor_frame_to_torso_frame);
     ROS_INFO_STREAM("The found transform is\n" << A_sensor_wrt_torso.linear() << "\n" << A_sensor_wrt_torso.translation());
 
@@ -64,11 +94,6 @@ int main(int argc, char** argv)
     pcl::toROSMsg(display_cloud, pcl2_display_cloud);
     pcl2_display_cloud.header.stamp = ros::Time::now();
     pcl2_display_cloud.header.frame_id = "torso";
-
-    MotionPlanning motion_planning(&nh);
-    ROS_INFO("Moving to prepose");
-    motion_planning.plan_move_to_pre_pose();
-    motion_planning.rt_arm_execute_planned_path();
 
     ROS_INFO("Converting goal pose to geometry_msgs");
     ROS_INFO_STREAM(goalPoint(0) << "," << goalPoint(1) << "," << goalPoint(2));
@@ -83,41 +108,34 @@ int main(int argc, char** argv)
     motion_planning.rt_arm_plan_path_current_to_goal_pose(rt_tool_pose); 
     motion_planning.rt_arm_execute_planned_path();
 
+    ROS_INFO("Descending to block");
+    rtn_val = motion_planning.rt_arm_request_tool_pose_wrt_torso();
+    rt_tool_pose = motion_planning.get_rt_tool_pose_stamped();
+    rt_tool_pose.pose.position.z -= .1;
+    motion_planning.rt_arm_plan_path_current_to_goal_pose(rt_tool_pose); 
+    motion_planning.rt_arm_execute_planned_path();
+   
     //GripperController gripper_controller(&nh);
-    //gripper_controller.open();
-
-    Eigen::Vector3d red;
-        red << 191, 55, 96; 
-    Eigen::Vector3d blue;
-        blue << 140, 188, 226; 
-    Eigen::Vector3d green;
-        green << 150, 175, 70;
-
-    ColorMove color_move(&nh);
+    //gripper_controller.close();
 
     if ((goalColor - red).norm() < 50)
     {
         ROS_INFO("Moving to red block place");
         color_move.set_goal_color1();
     }
-    else if ((goalColor - blue).norm() < 55)
+    else if ((goalColor - blue).norm() < 75)
     {
         ROS_INFO("Moving to blue block place");
         color_move.set_goal_color2();
     }
-    else if ((goalColor - green).norm() < 75)
+    else if ((goalColor - green).norm() < 95)
     {
         ROS_INFO("Moving to green block place");
         color_move.set_goal_color3();
     }
     else
     {
-	ROS_WARN("Detected color is not red, green, or blue");
+    ROS_WARN("Detected color is not red, green, or blue");
     }
 
-    while (ros::ok())
-    {
-        pubCloud.publish(pcl2_display_cloud);
-        ros::spinOnce();
-    }
 }

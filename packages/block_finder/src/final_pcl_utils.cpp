@@ -421,11 +421,10 @@ void FinalPclUtils::find_block(Eigen::Vector3f& centroid, Eigen::Vector3f& orien
         //copy_cloud(pclTransformed_clr_ptr_, kinectCloud);
         //pcl::removeNaNFromPointCloud(kinectCloud, kinectCloud, index);
         //ROS_INFO_STREAM("Size of cloud after NaN filtering is " << kinectCloud.size()); 
-        double tableHeight = -.15; //  Need to determine this experimentally
-        double maxHeight = -.12;  // Need to set this based on height of blocks we're looking for
-        double blockHeight = -.135;
+        double maxHeight = -.11;  // Need to set this based on height of blocks we're looking for
+        double blockHeight = -.12;
         double heightErrorMargin = .005;
-        double maxX = .9;
+        double maxX = 1;
         double maxY = .3;
         double minY = -.3;
 

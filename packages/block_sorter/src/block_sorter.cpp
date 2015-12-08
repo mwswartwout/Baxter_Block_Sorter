@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     pcl2_display_cloud.header.stamp = ros::Time::now();
     pcl2_display_cloud.header.frame_id = "torso";
 
-    /*MotionPlanning motion_planning(&nh);
+    MotionPlanning motion_planning(&nh);
     ROS_INFO("Moving to prepose");
     motion_planning.plan_move_to_pre_pose();
     motion_planning.rt_arm_execute_planned_path();
@@ -85,30 +85,34 @@ int main(int argc, char** argv)
 
     //GripperController gripper_controller(&nh);
     //gripper_controller.open();
-*/
+
     Eigen::Vector3d red;
         red << 191, 55, 96; 
     Eigen::Vector3d blue;
         blue << 140, 188, 226; 
     Eigen::Vector3d green;
-        green << 186, 206, 93;
+        green << 150, 175, 70;
 
     ColorMove color_move(&nh);
 
-    if ((goalColor - red).norm() < 5)
+    if ((goalColor - red).norm() < 50)
     {
         ROS_INFO("Moving to red block place");
         color_move.set_goal_color1();
     }
-    if ((goalColor - blue).norm() < 5)
+    else if ((goalColor - blue).norm() < 55)
     {
         ROS_INFO("Moving to blue block place");
         color_move.set_goal_color2();
     }
-    if ((goalColor - green).norm() < 5)
+    else if ((goalColor - green).norm() < 75)
     {
         ROS_INFO("Moving to green block place");
         color_move.set_goal_color3();
+    }
+    else
+    {
+	ROS_WARN("Detected color is not red, green, or blue");
     }
 
     while (ros::ok())

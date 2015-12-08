@@ -110,6 +110,7 @@ void BlockSorter::doBlockSort()
     motion_planning.rt_arm_execute_planned_path();
 
     gripper_controller.open();
+    ros::spinOnce();
 
     ROS_INFO("Descending to block");
     rtn_val = motion_planning.rt_arm_request_tool_pose_wrt_torso();
@@ -119,7 +120,8 @@ void BlockSorter::doBlockSort()
     motion_planning.rt_arm_execute_planned_path();
    
     gripper_controller.close();
-
+    ros::spinOnce();
+    ros::Duration(2.0).sleep();
     if ((goalColor - red).norm() < 50)
     {
         ROS_INFO("Moving to red block place");
@@ -140,4 +142,5 @@ void BlockSorter::doBlockSort()
     ROS_WARN("Detected color is not red, green, or blue");
     }
     gripper_controller.open();
+    ros::spinOnce();
 }

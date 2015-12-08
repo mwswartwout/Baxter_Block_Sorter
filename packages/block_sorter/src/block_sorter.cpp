@@ -6,7 +6,8 @@
 BlockSorter::BlockSorter() :
     final_pcl_utils(&nh),
     motion_planning(&nh),
-    color_move(&nh)
+    color_move(&nh),
+    gripper_controller(&nh)
 {   
     red << 191, 55, 96; 
     blue << 140, 188, 226; 
@@ -70,8 +71,8 @@ void BlockSorter::doBlockSort()
         tferr = false;
         try
         {
-                //tf_listener.lookupTransform("torso","camera_rgb_optical_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
-                tf_listener.lookupTransform("torso","kinect_pc_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
+                tf_listener.lookupTransform("torso","camera_rgb_optical_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
+                //tf_listener.lookupTransform("torso","kinect_pc_frame", ros::Time(0), tf_sensor_frame_to_torso_frame);
         }
         catch (tf::TransformException &exception)
         {
@@ -108,15 +109,16 @@ void BlockSorter::doBlockSort()
     motion_planning.rt_arm_plan_path_current_to_goal_pose(rt_tool_pose); 
     motion_planning.rt_arm_execute_planned_path();
 
+    gripper_controller.open();
+
     ROS_INFO("Descending to block");
     rtn_val = motion_planning.rt_arm_request_tool_pose_wrt_torso();
     rt_tool_pose = motion_planning.get_rt_tool_pose_stamped();
-    rt_tool_pose.pose.position.z -= .1;
+    rt_tool_pose.pose.position.z -= .08;
     motion_planning.rt_arm_plan_path_current_to_goal_pose(rt_tool_pose); 
     motion_planning.rt_arm_execute_planned_path();
    
-    //GripperController gripper_controller(&nh);
-    //gripper_controller.close();
+    gripper_controller.close();
 
     if ((goalColor - red).norm() < 50)
     {
@@ -137,5 +139,5 @@ void BlockSorter::doBlockSort()
     {
     ROS_WARN("Detected color is not red, green, or blue");
     }
-
+    gripper_controller.open();
 }

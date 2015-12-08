@@ -17,6 +17,7 @@ private:
     FinalPclUtils final_pcl_utils;
     MotionPlanning motion_planning;
     ColorMove color_move;
+    GripperController gripper_controller;
     Eigen::Vector3f goalPoint;
     Eigen::Vector3f goalOrientation;
     Eigen::Vector3d goalColor;
